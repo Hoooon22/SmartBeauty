@@ -34,7 +34,8 @@ BLACK_COLOR = (0, 0, 0)
 
 # Initialize Dlib's face detector (HOG-based) and then create
 # the facial landmark predictor
-shape_predictor = "model/shape_predictor_68_face_landmarks.dat"
+# shape_predictor = "model\shape_predictor_68_face_landmarks.dat"
+shape_predictor = "C:\git\SmartBeauty\SmartBeauty\Mouse_Cursor_Control_Handsfree-master\model\shape_predictor_68_face_landmarks.dat"
 detector = dlib.get_frontal_face_detector()
 predictor = dlib.shape_predictor(shape_predictor)
 
