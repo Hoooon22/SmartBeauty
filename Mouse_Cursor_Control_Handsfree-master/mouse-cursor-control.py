@@ -188,3 +188,4 @@ while True:
 # Do a bit of cleanup
 cv2.destroyAllWindows()
 vid.release()
+
