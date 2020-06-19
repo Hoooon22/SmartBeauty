@@ -14,16 +14,13 @@ EYE_AR_CONSECUTIVE_FRAMES = 15
 WINK_AR_DIFF_THRESH = 0.04
 WINK_AR_CLOSE_THRESH = 0.19
 WINK_CONSECUTIVE_FRAMES = 10
+MOUTH_INNER = list(range(61, 68))
 
 # Initialize the frame counters for each action as well as 
 # booleans used to indicate if action is performed or not
 MOUTH_COUNTER = 0
-#MOUTH_IN_COUNTER = 0
 EYE_COUNTER = 0
 WINK_COUNTER = 0
-EYE_CLICK = False
-LEFT_WINK = False
-RIGHT_WINK = False
 ANCHOR_POINT = (0, 0)
 WHITE_COLOR = (255, 255, 255)
 YELLOW_COLOR = (0, 255, 255)
@@ -43,7 +40,6 @@ predictor = dlib.shape_predictor(shape_predictor)
 (lStart, lEnd) = face_utils.FACIAL_LANDMARKS_IDXS["left_eye"]
 (rStart, rEnd) = face_utils.FACIAL_LANDMARKS_IDXS["right_eye"]
 (mStart, mEnd) = face_utils.FACIAL_LANDMARKS_IDXS["mouth"]
-#(inStart, inEnd) = face_utils.FACIAL_LANDMARKS_IDXS["mouth_in"]
 
 # Video capture
 vid = cv2.VideoCapture(0)
@@ -80,10 +76,10 @@ while True:
     shape = predictor(gray, rect)
     shape = face_utils.shape_to_np(shape)
 
+
     # Extract the left and right eye coordinates, then use the
     # coordinates to compute the eye aspect ratio for both eyes
     mouth = shape[mStart:mEnd]
-    #mouth_in = shape[inStart:inEnd]
     leftEye = shape[lStart:lEnd]
     rightEye = shape[rStart:rEnd]
 
@@ -92,89 +88,45 @@ while True:
     leftEye = rightEye
     rightEye = temp
 
+    for face in rects:
+        # face wrapped with rectangle
+        cv2.rectangle(frame, (face.left(), face.top()), (face.right(), face.bottom()),
+                      (0, 0, 255), 3)
+
+        # make prediction and transform to numpy array
+        landmarks = predictor(frame, face)  # 얼굴에서 68개 점 찾기
+
+        # create list to contain landmarks
+        landmark_list = []
+        print(landmark_list)
+
+        # append (x, y) in landmark_list
+        for p in landmarks.parts():
+            landmark_list.append([p.x, p.y])
+            cv2.circle(frame, (p.x, p.y), 2, (0, 255, 0), -1)
+
+
+
     # Average the mouth aspect ratio together for both eyes
-    mar = mouth_aspect_ratio(mouth)
-    #miar = mouth_in_aspect_ratio(mouth_in)
-    leftEAR = eye_aspect_ratio(leftEye)
-    rightEAR = eye_aspect_ratio(rightEye)
-    ear = (leftEAR + rightEAR) / 2.0
-    diff_ear = np.abs(leftEAR - rightEAR)
+    mar = shape[48:54]
+    #mouthinner = shape[60:68]
+    mouthinner = shape[48:49]
+    leftEAR = shape[36:41]
+    rightEAR = shape[42:47]
 
     # Compute the convex hull for the left and right eye, then
     # visualize each of the eyes
     mouthHull_out = cv2.convexHull(mouth)
-    #mouthHull_in = cv2.convexHull(mouth_in)
+    mouthHull_in = cv2.convexHull(mouthinner)
     leftEyeHull = cv2.convexHull(leftEye)
     rightEyeHull = cv2.convexHull(rightEye)
     cv2.drawContours(frame, [mouthHull_out], -1, WHITE_COLOR, 1)
-    #cv2.drawContours(frame, [mouthHull_in], -1, WHITE_COLOR, 1)
+    cv2.drawContours(frame, [mouthHull_in], -1, WHITE_COLOR, 1)
     cv2.drawContours(frame, [leftEyeHull], -1, YELLOW_COLOR, 1)
     cv2.drawContours(frame, [rightEyeHull], -1, YELLOW_COLOR, 1)
 
-    for (x, y) in np.concatenate((mouth, leftEye, rightEye), axis=0):
+    for (x, y) in np.concatenate((mouth, leftEye, rightEye,mouthinner), axis=0):
         cv2.circle(frame, (x, y), 2, GREEN_COLOR, -1)
-        
-    # Check to see if the eye aspect ratio is below the blink
-    # threshold, and if so, increment the blink frame counter
-    # if diff_ear > WINK_AR_DIFF_THRESH:
-    #
-    #     if leftEAR < rightEAR:
-    #         if leftEAR < EYE_AR_THRESH:
-    #             WINK_COUNTER += 1
-    #
-    #             if WINK_COUNTER > WINK_CONSECUTIVE_FRAMES:
-    #                 pag.click(button='left')
-    #
-    #                 WINK_COUNTER = 0
-    #
-    #     elif leftEAR > rightEAR:
-    #         if rightEAR < EYE_AR_THRESH:
-    #             WINK_COUNTER += 1
-    #
-    #             if WINK_COUNTER > WINK_CONSECUTIVE_FRAMES:
-    #                 pag.click(button='right')
-    #
-    #                 WINK_COUNTER = 0
-    #     else:
-    #         WINK_COUNTER = 0
-    # else:
-    #     if ear <= EYE_AR_THRESH:
-    #         EYE_COUNTER += 1
-    #
-    #         if EYE_COUNTER > EYE_AR_CONSECUTIVE_FRAMES:
-    #             SCROLL_MODE = not SCROLL_MODE
-    #             # INPUT_MODE = not INPUT_MODE
-    #             EYE_COUNTER = 0
-    #
-    #             # nose point to draw a bounding box around it
-    #
-    #     else:
-    #         EYE_COUNTER = 0
-    #         WINK_COUNTER = 0
-    #
-    # if mar > MOUTH_AR_THRESH:
-    #     MOUTH_COUNTER += 1
-    #
-    #     if MOUTH_COUNTER >= MOUTH_AR_CONSECUTIVE_FRAMES:
-    #         # if the alarm is not on, turn it on
-    #         INPUT_MODE = not INPUT_MODE
-    #         # SCROLL_MODE = not SCROLL_MODE
-    #         MOUTH_COUNTER = 0
-    #         ANCHOR_POINT = nose_point
-    #
-    # else:
-    #     MOUTH_COUNTER = 0
-    #
-    # if INPUT_MODE:
-    #     cv2.putText(frame, "READING INPUT!", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, RED_COLOR, 2)
-    #     x, y = ANCHOR_POINT
-    #     nx, ny = nose_point
-    #     w, h = 60, 35
-    #     multiple = 1
-    #     cv2.rectangle(frame, (x - w, y - h), (x + w, y + h), GREEN_COLOR, 2)
-    #     cv2.line(frame, ANCHOR_POINT, nose_point, BLUE_COLOR, 2)
-
-
 
     # Show the frame
     cv2.imshow("Frame", frame)
